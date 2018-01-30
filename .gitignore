@@ -1,5 +1,7 @@
 .idea
 
+db.sqlite3
+py3env
+
 lol_statistics/settings.py
 
-db.sqlite3

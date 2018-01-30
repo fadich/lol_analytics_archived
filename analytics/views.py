@@ -1,6 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render
-from .models import Account
+from .models import Account, Match, Champion
 from .api import RiotAPI
 
 
@@ -8,14 +8,22 @@ from .api import RiotAPI
 
 
 def info(request):
-    acc = request.GET['acc']
-    reg = request.GET['srv']
+    acc = ''
+    reg = ''
+    params = request.GET
+    if 'acc' in params:
+        acc = params['acc']
+    if 'srv' in params:
+        reg = params['srv']
 
-    res = RiotAPI(reg).get_account(acc)
+    api = RiotAPI(reg)
+
+    res = api.get_account(acc)
 
     if not res.status_code == 200:
         return render(request, 'summoner-not-found.html', {
-            'name': acc
+            'name': acc,
+            'region': reg
         })
 
     acc_info = res.json()
@@ -32,7 +40,26 @@ def info(request):
             summoner_level=acc_info['summonerLevel'],
         )
 
+    matches = Match.objects.filter(account=account)
+    if len(matches) == 0:
+        res = api.get_match_history(account.account_id)
+        if res.status_code == 200:
+            for match in res.json()['matches']:
+                champ = Champion.objects.get(champion_id=match['champion'])
+                mtch = Match.objects.create(
+                    platform_id=match['platformId'],
+                    game_id=match['gameId'],
+                    queue=match['queue'],
+                    season=match['season'],
+                    timestamp=int(match['timestamp'] / 1000),
+                    role=match['role'],
+                    lane=match['lane'],
+                    account=account
+                )
+                mtch.champion.add(champ)
+
     return render(request, 'summoner-info.html', {
         'account': account,
-        'region': reg
+        'region': reg,
+        'matches': Match.objects.filter(account=account)
     })

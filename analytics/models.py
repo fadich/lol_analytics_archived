@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils import timezone
+import datetime
 
 # Create your models here.
 
@@ -27,10 +27,14 @@ class Champion(models.Model):
 
 class Match(models.Model):
     platform_id = models.CharField(max_length=32)
-    game_id = models.IntegerField()
-    champion = models.ForeignKey('Champion')
+    game_id = models.BigIntegerField()
+    champion = models.ManyToManyField(Champion)
     queue = models.IntegerField()
-    season = models.IntegerField()
+    season = models.BigIntegerField()
     timestamp = models.IntegerField()
     role = models.CharField(max_length=32)
     lane = models.CharField(max_length=32)
+    account = models.ForeignKey(Account)
+
+    def __str__(self):
+        return '%s (%s)' % (self.account.name, datetime.datetime.fromtimestamp(self.timestamp).strftime('%Y-%m-%d %H:%M'))
